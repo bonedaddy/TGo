@@ -2,9 +2,11 @@ package tgo
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 // ConnectionsResponse holds the response from `GET /network/connections`
@@ -111,6 +113,42 @@ func (rpc *RPC) ClearGreylist() error {
 	defer resp.Body.Close()
 	if resp.Status != "200 OK" {
 		return fmt.Errorf("expected status '200 OK' got %s", resp.Status)
+	}
+	return nil
+}
+
+// GetNetworkLog calls GET /network/log
+// NOTE: Currently semi-bugged, closed after the first response
+func (rpc *RPC) GetNetworkLog(waitTime time.Duration) error {
+	url := fmt.Sprintf("%s/network/log", rpc.URL)
+	resp, err := rpc.Client.Get(url)
+	if err != nil {
+		return err
+	}
+	go func() {
+		time.Sleep(waitTime)
+		resp.Body.Close()
+	}()
+	//defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	if delim, ok := token.(json.Delim); !ok || delim != '{' {
+		return errors.New("expected object")
+	}
+	for decoder.More() {
+		_, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		var v interface{}
+		err = decoder.Decode(&v)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%+v\n", v)
 	}
 	return nil
 }

@@ -28,4 +28,9 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = client.GetNetworkLog(time.Minute * 1)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
