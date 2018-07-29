@@ -101,3 +101,16 @@ func (rpc *RPC) RemovePeer(peerID string, wait bool) error {
 	}
 	return nil
 }
+
+// ClearGreylist calls GET /network/greylist/clear
+func (rpc *RPC) ClearGreylist() error {
+	resp, err := rpc.Client.Get(fmt.Sprintf("%s/network/greylist/clear", rpc.URL))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.Status != "200 OK" {
+		return fmt.Errorf("expected status '200 OK' got %s", resp.Status)
+	}
+	return nil
+}
