@@ -23,4 +23,9 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%+v\n", peer)
+
+	err = client.RemovePeer(connections[0].PeerID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
