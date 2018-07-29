@@ -17,4 +17,10 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%+v\n", connections)
+
+	peer, err := client.GetPeerID(connections[0].PeerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("%+v\n", peer)
 }

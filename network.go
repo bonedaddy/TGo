@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 )
 
+// ConnectionsResponse holds the response from `GET /network/connections`
 type ConnectionsResponse struct {
 	Incoming bool   `json:"incoming"`
 	PeerID   string `json:"peer_id"`
@@ -30,11 +31,13 @@ type ConnectionsResponse struct {
 	} `json:"remote_metadata"`
 }
 
+// GetConnections calls /network/connections
 func (rpc *RPC) GetConnections() ([]ConnectionsResponse, error) {
 	resp, err := rpc.Client.Get(fmt.Sprintf("%s/network/connections", rpc.URL))
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -43,6 +46,24 @@ func (rpc *RPC) GetConnections() ([]ConnectionsResponse, error) {
 	err = json.Unmarshal(respBytes, &cp)
 	if err != nil {
 		return nil, err
+	}
+	return cp, nil
+}
+
+func (rpc *RPC) GetPeerID(peerID string) (ConnectionsResponse, error) {
+	resp, err := rpc.Client.Get(fmt.Sprintf("%s/network/connections/%s", rpc.URL, peerID))
+	if err != nil {
+		return ConnectionsResponse{}, err
+	}
+	defer resp.Body.Close()
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ConnectionsResponse{}, err
+	}
+	cp := ConnectionsResponse{}
+	err = json.Unmarshal(respBytes, &cp)
+	if err != nil {
+		return ConnectionsResponse{}, err
 	}
 	return cp, nil
 }
