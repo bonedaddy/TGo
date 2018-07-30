@@ -28,8 +28,16 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = client.GetNetworkLog(time.Minute * 1)
+	err = client.GetNetworkLog(time.Second * 15)
+	if err != nil {
+		t.Error(err)
+	}
+	/* Not working
+	err = client.GetNetworkPeers()
+	if err != nil {
+		t.Fatal(err)
+	}*/
+	err = client.GetNetworkPeer(connections[0].PeerID)
 	if err != nil {
 		t.Fatal(err)
 	}

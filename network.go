@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -150,5 +151,158 @@ func (rpc *RPC) GetNetworkLog(waitTime time.Duration) error {
 		}
 		fmt.Printf("%+v\n", v)
 	}
+	return nil
+}
+
+type NetworkPeers struct {
+	PublicKeyHash string
+	Score         int64 `json:"score"`
+	Trusted       bool  `json:"trusted"`
+	ConnMetadata  struct {
+		DisableMempool bool `json:"disable_mempool"`
+		PrivateNode    bool `json:"private_node"`
+	} `json:"conn_metadata"`
+	State       string `json:"state"`
+	ReachableAt struct {
+		Addr string `json:"addr"`
+		Port int64  `json:"port"`
+	} `json:"reachable_at"`
+	Stat struct {
+		TotalSent      int64 `json:"total_sent"`
+		TotalRecv      int64 `json:"total_recv"`
+		CurrentInflow  int64 `json:"current_inflow"`
+		CurrentOutflow int64 `json:"current_outflow"`
+	} `json:"stat"`
+	LastFailedConnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port"`
+		Timestamp int64
+	} `json:"last_failed_connection,omitempty"`
+	LastRejectedConnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port"`
+		Timestamp int64
+	} `json:"last_rejected_connection,omitempty"`
+	LastEstablishedConnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port"`
+		Timestamp int64
+	} `json:"last_established_connection,omitempty"`
+	LastDisconnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port"`
+		Timestamp int64
+	} `json:"last_disconnection,omitempty"`
+	LastSeen struct {
+		Addr      string `json:"addr"`
+		Port      string `json:"port"`
+		Timestamp int64
+	} `json:"last_seen,omitempty"`
+	LastMiss struct {
+		Addr      string `json:"addr"`
+		Port      string `json:"port"`
+		Timestamp int64
+	} `json:"last_miss,omitempty"`
+}
+
+// GetNetworkPeers calls GET /network/peers
+//TODO: implement filter
+func (rpc *RPC) GetNetworkPeers() error {
+	url := fmt.Sprintf("%s/network/peers", rpc.URL)
+	resp, err := rpc.Client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var raw interface{}
+	err = json.Unmarshal(respBytes, &raw)
+	if err != nil {
+		return err
+	}
+	peers := [][]NetworkPeers{}
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(b, &peers)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type NetworkPeer struct {
+	Score        int64 `json:"score,string"`
+	Trusted      bool  `json:"trusted"`
+	ConnMetadata struct {
+		DisableMempool bool `json:"disable_mempool"`
+		PrivateNode    bool `json:"private_node"`
+	} `json:"conn_metadata"`
+	State       string `json:"state"`
+	ReachableAt struct {
+		Addr string `json:"addr"`
+		Port int64  `json:"port"`
+	} `json:"reachable_at"`
+	Stat struct {
+		TotalSent      string `json:"total_sent"`
+		TotalRecv      string `json:"total_recv"`
+		CurrentInflow  int64  `json:"current_inflow,string"`
+		CurrentOutflow int64  `json:"current_outflow,string"`
+	} `json:"stat"`
+	LastFailedConnection struct {
+		Addr      string `json:"addr"`
+		Port      string `json:"port,omitempty"`
+		Timestamp int64
+	} `json:"last_failed_connection,omitempty"`
+	LastRejectedConnection []struct {
+		Addr string `json:"addr"`
+		Port string `json:"port,omitempty"`
+		//Timestamp int64
+	} `json:"last_rejected_connection,omitempty"`
+	LastEstablishedConnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port,omitempty"`
+		Timestamp int64
+	} `json:"last_established_connection,omitempty"`
+	LastDisconnection struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port,omitempty"`
+		Timestamp int64
+	} `json:"last_disconnection,omitempty"`
+	LastSeen struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port,omitempty"`
+		Timestamp int64
+	} `json:"last_seen,omitempty"`
+	LastMiss struct {
+		Addr      string `json:"addr"`
+		Port      int64  `json:"port,omitempty"`
+		Timestamp int64
+	} `json:"last_miss,omitempty"`
+}
+
+func (rpc *RPC) GetNetworkPeer(peerID string) error {
+	url := fmt.Sprintf("%s/network/peers/%s", rpc.URL, peerID)
+	resp, err := rpc.Client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	re := regexp.MustCompile(`(":\s*)([\d\.]+)(\s*[,}])`)
+	respBytes = re.ReplaceAll(respBytes, []byte(`$1"$2"$3`))
+	peer := NetworkPeer{}
+	err = json.Unmarshal(respBytes, &peer)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%+v\n", peer)
 	return nil
 }
